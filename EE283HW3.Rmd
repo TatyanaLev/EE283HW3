@@ -1,0 +1,124 @@
+---
+title: "EE283HW3"
+author: "Tatyana Lev"
+date: "1/21/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+Sys.setenv(RETICULATE_PYTHON = "/usr/local/bin/python3.9")
+```
+
+```{r}
+library(printr)
+```
+
+```{r}
+data(mtcars)
+help(mtcars)
+head(mtcars)
+```
+
+```{r}
+aggregate(mpg ~ cyl, data=mtcars, mean)
+```
+
+```{r}
+aggregate(mpg ~ cyl + gear, data=mtcars, mean)
+```
+
+```{r}
+library(dplyr)
+
+results = mtcars %>%
+    group_by(cyl) %>%
+    summarise(mean_mpg = mean(mpg))
+
+results
+```
+
+```{r}
+results = mtcars %>%
+    group_by(cyl, gear) %>%
+    summarise(mean_mpg = mean(mpg))
+
+as.data.frame(results)
+```
+
+```{r}
+con <- DBI::dbConnect(RSQLite::SQLite(), "mtcars.sqlite3")
+#copy_to(con, mtcars) #also doesn't work 
+DBI::dbWriteTable(con, "mtcars", mtcars)
+DBI::dbDisconnect(con)
+```
+
+```{bash}
+ls -lhrt *.sqlite3
+```
+
+```{r}
+con <- DBI::dbConnect(RSQLite::SQLite(), "mtcars.sqlite3")
+mtcars2 <- tbl(con, "mtcars")
+g = mtcars2 %>% 
+    group_by(cyl) %>%
+    summarise(mean_mpg=mean(mpg))
+```
+
+```{r}
+g %>% show_query()
+```
+
+```{r}
+result = g %>% collect()
+as.data.frame(result)
+```
+
+```{r}
+library(reticulate)
+```
+
+```{python}
+mtcars = r.mtcars
+mtcars.head()
+```
+
+```{python}
+mtcars.groupby(['cyl'])['mpg'].mean()
+```
+
+```{python}
+mtcars.groupby(['cyl', 'gear'])['mpg'].mean()
+```
+
+```{python}
+import sqlite3
+con = sqlite3.connect("mtcars_from_pandas.sqlite3")
+
+mtcars.to_sql("mtcars", con)
+con.close()
+```
+
+```{bash}
+ls -lhrt *.sqlite3
+```
+
+```{python}
+import pandas as pd
+
+con = sqlite3.connect("mtcars_from_pandas.sqlite3")
+df = pd.read_sql("select * from mtcars", con)
+df.head()
+```
+
+```{python}
+df = pd.read_sql("select cyl, avg(mpg) from mtcars group by cyl", con)
+df.head()
+```
+
+```{python}
+df = pd.read_sql("select cyl, gear, avg(mpg) from mtcars group by cyl, gear", con)
+df.head()
+```
+
